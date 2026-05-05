@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Reklam</title>
+
+<style>
+body {
+  margin: 0;
+  background: black;
+  overflow: hidden;
+}
+
+#media {
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+}
+</style>
+</head>
+
+<body>
+
+<img id="media" style="display:none;">
+<video id="video" style="display:none;" autoplay muted></video>
+
+<script>
+const SHEET_ID = "11Aa38-Z4CUSwVAECIcTD_yCMdb1TeC1rXJARUKvSdGw";
+const API_KEY = "AIzaSyBclk4wa6D0akN01_VcJX-Y2MpXehBW6ug";
+const RANGE = "Reklam!A2:F";
+
+let playlist = [];
+let index = 0;
+
+async function loadPlaylist() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  playlist = data.values
+    .map(r => ({
+      active: r[0],
+      type: r[1],
+      url: r[2],
+      duration: Number(r[3]) || 0
+    }))
+    .filter(x => x.active === "TRUE");
+}
+
+function playNext() {
+  if (playlist.length === 0) return;
+
+  const item = playlist[index];
+  index = (index + 1) % playlist.length;
+
+  const img = document.getElementById("media");
+  const video = document.getElementById("video");
+
+  img.style.display = "none";
+  video.style.display = "none";
+  video.pause();
+
+  if (item.type === "image") {
+    img.src = item.url;
+    img.style.display = "block";
+
+    setTimeout(playNext, item.duration * 1000);
+
+  } else if (item.type === "video") {
+    video.src = item.url;
+    video.currentTime = 0;
+    video.style.display = "block";
+    video.play();
+
+    if (item.duration > 0) {
+      setTimeout(playNext, item.duration * 1000);
+    } else {
+      video.onended = playNext;
+    }
+  }
+}
+
+async function start() {
+  await loadPlaylist();
+  playNext();
+  setInterval(loadPlaylist, 60000);
+}
+
+start();
+</script>
+
+</body>
+</html>
